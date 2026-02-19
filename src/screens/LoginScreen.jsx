@@ -1,145 +1,148 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase/config';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, googleProvider, db } from '../firebase';
+import { 
+  signInWithPopup, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword 
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const LoginScreen = ({ onLoginSuccess }) => {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [step, setStep] = useState(1); // 1: Credentials, 2: Profile Info
+  const [loading, setLoading] = useState(false);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [profileData, setProfileData] = useState({ displayName: '', age: '' });
+  const [activeUid, setActiveUid] = useState(null);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // --- GOOGLE LOGIN ---
+  const handleGoogle = async () => {
+    setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      onLoginSuccess();
-    } catch (error) {
-      alert("Login failed: " + error.message);
-    }
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (userDoc.exists()) {
+        onLoginSuccess(user.uid);
+      } else {
+        setActiveUid(user.uid);
+        setProfileData({ ...profileData, displayName: user.displayName || '' });
+        setStep(2);
+      }
+    } catch (err) { alert(err.message); }
+    setLoading(false);
+  };
+
+  // --- EMAIL LOGIN / SIGNUP ---
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        const res = await createUserWithEmailAndPassword(auth, email, password);
+        setActiveUid(res.user.uid);
+        setStep(2); // Go to Name/Age step
+      } else {
+        const res = await signInWithEmailAndPassword(auth, email, password);
+        onLoginSuccess(res.user.uid);
+      }
+    } catch (err) { alert(err.message); }
+    setLoading(false);
+  };
+
+  // --- SAVE FINAL PROFILE ---
+  const finishProfile = async () => {
+    if (!profileData.displayName || !profileData.age) return alert("Fill all fields");
+    try {
+      await setDoc(doc(db, "users", activeUid), {
+        displayName: profileData.displayName,
+        age: profileData.age,
+        uid: activeUid,
+        email: email || auth.currentUser.email
+      });
+      onLoginSuccess(activeUid);
+    } catch (err) { alert("Error saving profile"); }
   };
 
   return (
-    <div style={styles.webContainer}>
-      {/* LEFT SIDE: Immersive Branding */}
-      <div style={styles.visualSide}>
-        <div style={styles.overlay}>
-          <h1 style={styles.branding}>SimpleGameFinder</h1>
-          <p style={styles.tagline}>Stop scrolling. Start playing.</p>
-        </div>
-      </div>
-
-      {/* RIGHT SIDE: Full-width Form Section */}
-      <div style={styles.formSide}>
-        <div style={styles.formCard}>
-          <h2 style={styles.title}>Welcome Back</h2>
-          <p style={styles.subtitle}>Enter your details to access your dashboard</p>
-
-          <form onSubmit={handleLogin} style={styles.form}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Email Address</label>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h1 style={styles.logo}>🎮 SGF</h1>
+        
+        {step === 1 ? (
+          <>
+            <h2 style={styles.title}>{isSignUp ? "Create Account" : "Welcome Back"}</h2>
+            
+            <form onSubmit={handleAuth} style={styles.form}>
               <input 
+                style={styles.input} 
+                placeholder="Email" 
                 type="email" 
-                placeholder="name@example.com" 
-                style={styles.input}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
               />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Password</label>
               <input 
+                style={styles.input} 
+                placeholder="Password" 
                 type="password" 
-                placeholder="••••••••" 
-                style={styles.input}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
               />
-            </div>
+              <button style={styles.mainBtn} type="submit" disabled={loading}>
+                {isSignUp ? "Sign Up" : "Log In"}
+              </button>
+            </form>
 
-            <button type="submit" style={styles.loginBtn}>Sign In</button>
-          </form>
+            <div style={styles.divider}>OR</div>
 
-          <div style={styles.divider}><span>OR</span></div>
+            <button style={styles.googleBtn} onClick={handleGoogle}>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" style={{width:20}} alt="G" />
+              Continue with Google
+            </button>
 
-          <div style={styles.socialGrid}>
-            <button style={styles.socialBtn}>Google</button>
-            <button style={styles.socialBtn}>Apple ID</button>
+            <p style={styles.toggleText} onClick={() => setIsSignUp(!isSignUp)}>
+              {isSignUp ? "Already have an account? Log In" : "Don't have an account? Sign Up"}
+            </p>
+          </>
+        ) : (
+          <div style={styles.form}>
+            <h2 style={styles.title}>One Last Thing...</h2>
+            <label style={styles.label}>What should we call you?</label>
+            <input 
+              style={styles.input} 
+              placeholder="Display Name" 
+              onChange={(e) => setProfileData({...profileData, displayName: e.target.value})} 
+            />
+            <label style={styles.label}>How old are you?</label>
+            <input 
+              style={styles.input} 
+              type="number" 
+              placeholder="Age" 
+              onChange={(e) => setProfileData({...profileData, age: e.target.value})} 
+            />
+            <button style={styles.mainBtn} onClick={finishProfile}>Enter Dashboard</button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
 const styles = {
-  webContainer: { 
-    display: 'flex', 
-    width: '100vw', // Occupy full viewport width
-    height: '100vh', 
-    backgroundColor: '#050A15', 
-    color: '#fff',
-    overflow: 'hidden'
-  },
-  visualSide: { 
-    flex: 1.5, // Takes up 60% of the screen
-    background: 'linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80")',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  overlay: { textAlign: 'center', padding: '0 20px' },
-  branding: { fontSize: '56px', fontWeight: '900', letterSpacing: '-2px', margin: 0 },
-  tagline: { fontSize: '22px', color: '#00D1FF', marginTop: '10px' },
-  
-  formSide: { 
-    flex: 1, // Takes up 40% of the screen
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    backgroundColor: '#0D1421', // Dark background for the form area
-    padding: '40px' 
-  },
-  formCard: { width: '100%', maxWidth: '400px' },
-  title: { fontSize: '32px', marginBottom: '10px' },
-  subtitle: { color: '#94A3B8', marginBottom: '30px' },
-  inputGroup: { marginBottom: '20px' },
-  label: { display: 'block', marginBottom: '8px', fontSize: '14px', color: '#94A3B8' },
-  input: { 
-    width: '100%', 
-    padding: '14px', 
-    borderRadius: '12px', 
-    border: '1px solid #1E293B', 
-    backgroundColor: '#1E293B', 
-    color: '#fff', 
-    fontSize: '16px',
-    boxSizing: 'border-box' 
-  },
-  loginBtn: { 
-    width: '100%', 
-    padding: '16px', 
-    backgroundColor: '#A2FF00', 
-    color: '#000', 
-    border: 'none', 
-    borderRadius: '12px', 
-    fontWeight: 'bold', 
-    fontSize: '16px', 
-    cursor: 'pointer', 
-    marginTop: '10px',
-    transition: '0.2s opacity'
-  },
-  divider: { margin: '30px 0', textAlign: 'center', borderBottom: '1px solid #1E293B', lineHeight: '0.1em' },
-  socialGrid: { display: 'flex', gap: '15px' },
-  socialBtn: { 
-    flex: 1, 
-    padding: '12px', 
-    backgroundColor: '#1E293B', 
-    color: '#fff', 
-    border: '1px solid #334155', 
-    borderRadius: '12px', 
-    cursor: 'pointer',
-    fontSize: '14px'
-  }
+  container: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#050A15', color: '#fff' },
+  card: { padding: '40px', backgroundColor: '#0D1421', borderRadius: '30px', border: '1px solid #1E293B', width: '360px', textAlign: 'center' },
+  logo: { fontSize: '32px', color: '#00D1FF', marginBottom: '20px' },
+  title: { fontSize: '20px', marginBottom: '25px' },
+  form: { display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' },
+  label: { fontSize: '11px', color: '#64748B', marginBottom: '-10px', textTransform: 'uppercase' },
+  input: { padding: '12px', borderRadius: '10px', border: '1px solid #1E293B', backgroundColor: '#050A15', color: '#fff' },
+  mainBtn: { padding: '14px', borderRadius: '10px', border: 'none', backgroundColor: '#00D1FF', color: '#000', fontWeight: 'bold', cursor: 'pointer' },
+  googleBtn: { width: '100%', padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#fff', color: '#000', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' },
+  divider: { margin: '20px 0', fontSize: '12px', color: '#475569' },
+  toggleText: { marginTop: '20px', fontSize: '13px', color: '#00D1FF', cursor: 'pointer', textDecoration: 'underline' }
 };
 
 export default LoginScreen;
