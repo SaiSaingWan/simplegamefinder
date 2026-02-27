@@ -4,19 +4,19 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC9N66yRHuh4uv6n_g6LkUjUVo-aBy0Xak",
-  // Ensure these match the NEW project details in your console:
-  authDomain: "simplegamefinder084.firebaseapp.com", 
-  projectId: "simplegamefinder084",                 
-  storageBucket: "simplegamefinder084.firebasestorage.app",
-  messagingSenderId: "35902992269",
-  appId: "1:35902992269:web:17c68e6bb981121b6d57c4",
-  measurementId: "G-Y54TMBFYRC"
+  apiKey: "AIzaSyD7Y56LQ_6XVaByxNvXLahkdZGvOU6naHk",
+  authDomain: "simplegamefinder3084.firebaseapp.com",
+  projectId: "simplegamefinder3084",
+  storageBucket: "simplegamefinder3084.firebasestorage.app",
+  messagingSenderId: "617678283192",
+  appId: "1:617678283192:web:45936c39b50a06669d6f4d",
+  measurementId: "G-TTFDFWFDV2"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 
-// Export these so your App.jsx and Screens can use them
+// EXPORTS: Critical for your screens to work!
 export const auth = getAuth(app);
 export const db = getFirestore(app);
