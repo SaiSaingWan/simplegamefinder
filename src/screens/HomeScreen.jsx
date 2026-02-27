@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
-const HomeScreen = ({ onStartQuiz, onSelectGame, onGenreSelect, userLevel = 1 }) => {
+// Added 'user' and 'onLoginClick' to props for the Guest-First logic
+const HomeScreen = ({ onStartQuiz, onSelectGame, onGenreSelect, user, onLoginClick, userLevel = 1 }) => {
   const [trending, setTrending] = useState([]);
   const [newReleases, setNewReleases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,12 +14,10 @@ const HomeScreen = ({ onStartQuiz, onSelectGame, onGenreSelect, userLevel = 1 })
         const today = new Date().toISOString().split('T')[0];
         const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
-        // 1. Fetch Trending (Vertical List)
         const trendingRes = await fetch(`https://api.rawg.io/api/games?key=${API_KEY}&dates=${lastMonth},${today}&ordering=-added&page_size=5`);
         const trendingData = await trendingRes.json();
         setTrending(trendingData.results || []);
 
-        // 2. Fetch New Releases (Horizontal Feed)
         const newRes = await fetch(`https://api.rawg.io/api/games?key=${API_KEY}&dates=2024-01-01,${today}&ordering=-released&page_size=8`);
         const newData = await newRes.json();
         setNewReleases(newData.results || []);
@@ -34,6 +33,21 @@ const HomeScreen = ({ onStartQuiz, onSelectGame, onGenreSelect, userLevel = 1 })
 
   return (
     <div style={styles.container}>
+      {/* 1. DYNAMIC HEADER (Bot-Friendly) */}
+      <nav style={styles.navbar}>
+        <div style={styles.logo}>🎮 SimpleGameFinder</div>
+        <div>
+          {user ? (
+            <button style={styles.profileBtn} onClick={() => console.log('Go to Profile')}>
+              <img src={user.photoURL || 'https://via.placeholder.com/30'} style={styles.avatar} alt="Profile" />
+              <span>Scout Profile</span>
+            </button>
+          ) : (
+            <button style={styles.loginBtn} onClick={onLoginClick}>Sign In</button>
+          )}
+        </div>
+      </nav>
+
       {/* HERO SECTION */}
       <div style={styles.hero}>
         <div style={styles.heroOverlay}>
@@ -89,18 +103,52 @@ const HomeScreen = ({ onStartQuiz, onSelectGame, onGenreSelect, userLevel = 1 })
             </div>
           </div>
           
+          {/* GUEST-AWARE UI: SAVED GAMES PREVIEW */}
+          {!user && (
+            <div style={{...styles.feedCard, border: '1px dashed #334155'}}>
+              <h3 style={{color: '#94A3B8', fontSize: '14px'}}>Your Library</h3>
+              <p style={{color: '#64748B', fontSize: '12px'}}>Sign in to save games to your scout collection!</p>
+              <button style={styles.miniLoginBtn} onClick={onLoginClick}>Join the HQ</button>
+            </div>
+          )}
+
           <div style={{...styles.feedCard, background: 'linear-gradient(to bottom right, #1E293B, #0F172A)'}}>
             <h3 style={{color: '#00D1FF', margin: 0}}>Scout Tip 💡</h3>
             <p style={{color: '#94A3B8', fontSize: '13px'}}>Complete games to increase your Scout Tier and unlock special badges!</p>
           </div>
         </div>
       </div>
+
+      {/* FOOTER (CRITICAL FOR PHISHING REVIEW) */}
+      <footer style={styles.footer}>
+        <p>SimpleGameFinder © 2026 | Student Project for Educational Purposes</p>
+        <p style={{fontSize: '10px', color: '#475569'}}>Data provided by RAWG API via Firebase Hosting</p>
+      </footer>
     </div>
   );
 };
 
 const styles = {
-  container: { padding: '30px', maxWidth: '1300px', margin: '0 auto' },
+  container: { padding: '30px', maxWidth: '1300px', margin: '0 auto', backgroundColor: '#050A15', minHeight: '100vh' },
+  navbar: { 
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+    padding: '15px 0', marginBottom: '20px', borderBottom: '1px solid #1E293B' 
+  },
+  logo: { color: '#fff', fontSize: '20px', fontWeight: 'bold' },
+  loginBtn: { 
+    backgroundColor: '#00D1FF', color: '#000', padding: '8px 20px', 
+    borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' 
+  },
+  profileBtn: { 
+    backgroundColor: '#1E293B', color: '#fff', padding: '5px 15px', 
+    borderRadius: '20px', border: '1px solid #334155', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: '10px'
+  },
+  avatar: { width: '24px', height: '24px', borderRadius: '50%' },
+  miniLoginBtn: { 
+    marginTop: '10px', background: 'none', border: '1px solid #00D1FF', 
+    color: '#00D1FF', padding: '5px 12px', borderRadius: '5px', fontSize: '12px', cursor: 'pointer' 
+  },
   hero: { 
     height: '300px', borderRadius: '24px', marginBottom: '40px',
     backgroundImage: 'url(https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop)',
@@ -134,7 +182,8 @@ const styles = {
   chevron: { color: '#1E293B', fontSize: '20px' },
   
   genreGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-  genrePill: { padding: '12px', backgroundColor: '#050A15', border: '1px solid #1E293B', borderRadius: '12px', color: '#fff', textAlign: 'center', cursor: 'pointer', fontSize: '13px' }
+  genrePill: { padding: '12px', backgroundColor: '#050A15', border: '1px solid #1E293B', borderRadius: '12px', color: '#fff', textAlign: 'center', cursor: 'pointer', fontSize: '13px' },
+  footer: { marginTop: '50px', textAlign: 'center', color: '#64748B', fontSize: '12px', borderTop: '1px solid #1E293B', padding: '20px 0' }
 };
 
 export default HomeScreen;
