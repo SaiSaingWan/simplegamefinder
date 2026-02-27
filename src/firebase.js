@@ -10,13 +10,13 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgQvMmslvGEdssICr6FLkCVz6p6aV6zIc",
-  authDomain: "simplegamefinder.firebaseapp.com",
-  projectId: "simplegamefinder",
-  storageBucket: "simplegamefinder.firebasestorage.app",
-  messagingSenderId: "35902992269",
-  appId: "1:35902992269:web:d4204bea4de2634f6d57c4",
-  measurementId: "G-K4KC8B2N69"
+  apiKey: "AIzaSyD7Y56LQ_6XVaByxNvXLahkdZGvOU6naHk",
+  authDomain: "simplegamefinder3084.firebaseapp.com",
+  projectId: "simplegamefinder3084",
+  storageBucket: "simplegamefinder3084.firebasestorage.app",
+  messagingSenderId: "617678283192",
+  appId: "1:617678283192:web:45936c39b50a06669d6f4d",
+  measurementId: "G-TTFDFWFDV2"
 };
 
 const app = initializeApp(firebaseConfig);
