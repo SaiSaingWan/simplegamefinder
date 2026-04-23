@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../firebase'; 
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
+import { db, auth, saveGameToUserLibrary } from '../firebase'; 
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const ResultsScreen = ({ quizResults, onBack, onSelectGame }) => {
   const [games, setGames] = useState([]);
@@ -11,17 +11,25 @@ const ResultsScreen = ({ quizResults, onBack, onSelectGame }) => {
   const [totalPages, setTotalPages] = useState(1);
   
   const API_KEY = '738e6aa86d1444cf87ccc6b8607e1d4a'; 
-  const currentUserId = "user_123"; // Logic placeholder
+
+  // Get the real UID from the logged-in user
+  const currentUserId = auth.currentUser?.uid;
 
   useEffect(() => {
     const fetchGamesData = async () => {
+      if (!currentUserId) return;
+      
       setLoading(true);
       try {
-        // Fetch only this user's library to show "Saved" status correctly
-        const qSaved = query(collection(db, "savedGames"), where("userId", "==", currentUserId));
+        // Fetch only THIS user's library from Firestore
+        const qSaved = query(
+          collection(db, "savedGames"), 
+          where("userId", "==", currentUserId)
+        );
         const savedSnapshot = await getDocs(qSaved);
         setSavedGameIds(savedSnapshot.docs.map(doc => doc.data().gameId));
 
+        // RAWG API Fetching Logic
         let baseUrl = "";
         if (quizResults?.genreId) {
           baseUrl = `https://api.rawg.io/api/games?key=${API_KEY}&genres=${quizResults.genreId}&ordering=-rating`;
@@ -44,7 +52,7 @@ const ResultsScreen = ({ quizResults, onBack, onSelectGame }) => {
         setGames(data.results || []);
         setTotalPages(Math.ceil((data.count || 0) / 16) > 50 ? 50 : Math.ceil((data.count || 0) / 16));
       } catch (error) {
-        console.error(error);
+        console.error("Fetch Error:", error);
       } finally {
         setLoading(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -52,25 +60,20 @@ const ResultsScreen = ({ quizResults, onBack, onSelectGame }) => {
     };
 
     if (quizResults) fetchGamesData();
-  }, [quizResults, currentPage]);
+  }, [quizResults, currentPage, currentUserId]);
 
   const handleSaveGame = async (e, game) => {
     e.stopPropagation();
+    if (!currentUserId) return alert("Please log in first!");
     if (savedGameIds.includes(game.id)) return;
+
     setSavingId(game.id);
     try {
-      await addDoc(collection(db, "savedGames"), {
-        gameId: game.id,
-        userId: currentUserId, // LINK TO USER
-        name: game.name,
-        image: game.background_image,
-        rating: game.rating,
-        status: "Backlog", // INITIAL STATUS
-        savedAt: serverTimestamp(),
-      });
+      // Use the helper function we made in firebase.js
+      await saveGameToUserLibrary(game);
       setSavedGameIds(prev => [...prev, game.id]);
     } catch (err) {
-      alert("Error saving.");
+      alert("Save failed: " + err.message);
     } finally {
       setSavingId(null);
     }
@@ -130,6 +133,7 @@ const ResultsScreen = ({ quizResults, onBack, onSelectGame }) => {
   );
 };
 
+// Styles remain the same...
 const styles = {
   container: { padding: '40px', backgroundColor: '#050A15', minHeight: '100vh' },
   header: { marginBottom: '40px' },
