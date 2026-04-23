@@ -1,12 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signInWithPopup 
-} from "firebase/auth";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7Y56LQ_6XVaByxNvXLahkdZGvOU6naHk",
@@ -18,38 +12,23 @@ const firebaseConfig = {
   measurementId: "G-TTFDFWFDV2"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-/**
- * NEW: Function to save a game specifically for the logged-in user
- */
-export const saveGameForUser = async (gameData) => {
+// THIS IS THE MISSING PART - MAKE SURE THIS IS AT THE BOTTOM
+export const saveGameToUserLibrary = async (game) => {
   const user = auth.currentUser;
-  if (!user) throw new Error("You must be logged in to save games.");
+  if (!user) throw new Error("User not authenticated");
 
   return await addDoc(collection(db, "savedGames"), {
-    ...gameData,
-    userId: user.uid, // This links the game to the specific user
-    savedAt: new Date()
+    gameId: game.id,
+    userId: user.uid, 
+    name: game.name,
+    image: game.background_image,
+    rating: game.rating,
+    status: "Backlog",
+    savedAt: serverTimestamp(),
   });
-};
-
-/**
- * NEW: Function to fetch only the games belonging to the logged-in user
- */
-export const getMyGames = async () => {
-  const user = auth.currentUser;
-  if (!user) return [];
-
-  const q = query(
-    collection(db, "savedGames"), 
-    where("userId", "==", user.uid) // Filters out everyone else's data
-  );
-
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
