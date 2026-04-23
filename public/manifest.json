@@ -1,7 +1,6 @@
 {
-    "short_name": "SGF",
-    "name": "SimpleGameFinder",
-    "description": "Scout and save your favorite video games.",
+    "short_name": "MyApp",
+    "name": "My Application",
     "icons": [
         {
         "src": "icon-192.png",
@@ -16,6 +15,6 @@
     ],
     "start_url": "/index.html",
     "display": "standalone",
-    "theme_color": "#00D1FF",
-    "background_color": "#050A15"
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
 }
