@@ -33,21 +33,7 @@ const HomeScreen = ({ onStartQuiz, onSelectGame, onGenreSelect, user, onLoginCli
 
   return (
     <div style={styles.container}>
-      {/* 1. DYNAMIC HEADER (Bot-Friendly) */}
-      <nav style={styles.navbar}>
-        <div style={styles.logo}>🎮 SimpleGameFinder</div>
-        <div>
-          {user ? (
-            <button style={styles.profileBtn} onClick={() => console.log('Go to Profile')}>
-              <img src={user.photoURL || 'https://via.placeholder.com/30'} style={styles.avatar} alt="Profile" />
-              <span>Scout Profile</span>
-            </button>
-          ) : (
-            <button style={styles.loginBtn} onClick={onLoginClick}>Sign In</button>
-          )}
-        </div>
-      </nav>
-
+      {/* REMOVED: The navbar with the redundant Scout Profile button */}
       {/* HERO SECTION */}
       <div style={styles.hero}>
         <div style={styles.heroOverlay}>
